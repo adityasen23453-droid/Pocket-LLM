@@ -23,97 +23,69 @@ class ChatSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final sidebarBg = isDark ? const Color(0xFF141417) : const Color(0xFFF9F9FA);
-    final borderColor = isDark ? const Color(0xFF242429) : const Color(0xFFE8E8EC);
-    final textPrimary = isDark ? Colors.white : Colors.black;
-    final textSecondary = isDark ? const Color(0xFF8E8E98) : const Color(0xFF6B6B76);
-    final activeItemBg = isDark ? const Color(0xFF222228) : const Color(0xFFEBEBF0);
+    final bg = isDark ? const Color(0xFF0D0E11) : const Color(0xFFFFFFFF);
+    final textPrimary = isDark ? const Color(0xFFE3E3E8) : const Color(0xFF1F1F1F);
+    final textSecondary = isDark ? const Color(0xFF8E8E98) : const Color(0xFF70757A);
+    final activeItemBg = isDark ? const Color(0xFF1E1F24) : const Color(0xFFE8F0FE);
 
     return Container(
-      width: 270,
-      decoration: BoxDecoration(
-        color: sidebarBg,
-        border: Border(
-          right: BorderSide(color: borderColor, width: 1),
-        ),
-      ),
+      width: 300,
+      color: bg,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header / App title
+            // Header: "PocketLLM" title + close button
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-              child: InkWell(
-                onTap: onBackToLanding,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white : Colors.black,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.all_inclusive,
-                            size: 20,
-                            color: isDark ? const Color(0xFF121212) : Colors.white,
-                          ),
-                        ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'PocketLLM',
+                      style: TextStyle(
+                        color: textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: -0.3,
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'PocketLLM',
-                        style: TextStyle(
-                          color: textPrimary,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  IconButton(
+                    icon: Icon(Icons.close, size: 24, color: textPrimary),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                  ),
+                ],
               ),
             ),
 
-            // New Chat Button
+            // New Chat pill button (highlighted)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: InkWell(
                 onTap: onNewChat,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(28),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF222227) : const Color(0xFFFFFFFF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? const Color(0xFF2E2E36) : const Color(0xFFDCDCE2),
-                      width: 1,
-                    ),
+                    color: isDark ? const Color(0xFF2A2B31) : const Color(0xFFF0F4F9),
+                    borderRadius: BorderRadius.circular(28),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.add_rounded,
-                        size: 18,
-                        color: textPrimary,
+                        Icons.edit_outlined,
+                        size: 20,
+                        color: isDark ? const Color(0xFF8AB4F8) : const Color(0xFF1A73E8),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 12),
                       Text(
-                        'New Chat',
+                        'New chat',
                         style: TextStyle(
                           color: textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -124,16 +96,39 @@ class ChatSidebar extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // History Label
+            // Navigation items (PocketLLM style)
+            _navItem(Icons.search, 'Search chats', textPrimary, textSecondary, () {}),
+            _navItem(Icons.auto_awesome_outlined, 'Images', textPrimary, textSecondary, () {}),
+            _navItem(Icons.smart_display_outlined, 'Videos', textPrimary, textSecondary, () {}),
+            _navItem(Icons.grid_view_rounded, 'Library', textPrimary, textSecondary, () {}),
+
+            const SizedBox(height: 16),
+
+            // Notebooks section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Text(
-                'CHAT HISTORY',
+                'Notebooks',
                 style: TextStyle(
                   color: textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            _navItem(Icons.add, 'New notebook', textPrimary, textSecondary, () {}),
+
+            const SizedBox(height: 16),
+
+            // Recent section label
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Text(
+                'Recent',
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -141,65 +136,62 @@ class ChatSidebar extends StatelessWidget {
             // Chat History List
             Expanded(
               child: sessions.isEmpty
-                  ? Center(
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       child: Text(
-                        'No chats yet',
+                        'No results found',
                         style: TextStyle(
                           color: textSecondary,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                     )
                   : ListView.builder(
                       itemCount: sessions.length,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       itemBuilder: (context, index) {
                         final session = sessions[index];
                         final isActive = session.id == activeSessionId;
 
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 4),
+                          margin: const EdgeInsets.only(bottom: 2),
                           child: InkWell(
                             onTap: () => onSelectSession(session.id),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(28),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isActive ? activeItemBg : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(28),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                    Icons.chat_bubble_outline_rounded,
-                                    size: 16,
-                                    color: isActive ? textPrimary : textSecondary,
-                                  ),
-                                  const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       session.title,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: isActive ? textPrimary : (isDark ? const Color(0xFFCCCCCC) : const Color(0xFF333333)),
-                                        fontSize: 13.5,
-                                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                                        color: isActive
+                                            ? textPrimary
+                                            : (isDark ? const Color(0xFFBBBBC3) : const Color(0xFF444746)),
+                                        fontSize: 14,
+                                        fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                                       ),
                                     ),
                                   ),
                                   if (onDeleteSession != null && sessions.length > 1)
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.close_rounded,
-                                        size: 15,
-                                        color: textSecondary.withValues(alpha: 0.7),
+                                    InkWell(
+                                      onTap: () => onDeleteSession!(session.id),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 16,
+                                          color: textSecondary.withValues(alpha: 0.6),
+                                        ),
                                       ),
-                                      onPressed: () => onDeleteSession!(session.id),
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                                      splashRadius: 14,
-                                      tooltip: 'Delete chat',
                                     ),
                                 ],
                               ),
@@ -210,97 +202,96 @@ class ChatSidebar extends StatelessWidget {
                     ),
             ),
 
-            Divider(height: 1, color: borderColor),
-
-            // Footer Actions
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            // Bottom Profile Card (PocketLLM style)
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 16),
+              child: Row(
                 children: [
-                  if (onBackToLanding != null) ...[
-                    InkWell(
-                      onTap: onBackToLanding,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1B1B20) : const Color(0xFFFFFFFF),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF28282E) : const Color(0xFFE2E2E6),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.arrow_back_rounded,
-                              size: 16,
-                              color: textPrimary,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Landing Page',
-                                style: TextStyle(
-                                  color: textPrimary,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
+                  // Profile avatar with glowing ring
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF1A73E8),
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.asset(
+                        'assets/images/pratik_avatar.png',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 36,
+                          height: 36,
+                          color: isDark ? const Color(0xFF2A2B31) : const Color(0xFFF0F4F9),
+                          child: Icon(Icons.person, size: 20, color: textSecondary),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  ValueListenableBuilder<ThemeMode>(
-                valueListenable: themeController,
-                builder: (context, currentTheme, _) {
-                  final isDarkTheme = currentTheme == ThemeMode.dark;
-                  return InkWell(
-                    onTap: () => themeController.toggleTheme(),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1B1B20) : const Color(0xFFFFFFFF),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF28282E) : const Color(0xFFE2E2E6),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isDarkTheme ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                            size: 18,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pratik Sharma',
+                          style: TextStyle(
                             color: textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              isDarkTheme ? 'Light Theme (White+Black)' : 'Dark Theme (Charcoal)',
-                              style: TextStyle(
-                                color: textPrimary,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          'PLUS',
+                          style: TextStyle(
+                            color: textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.settings_outlined, size: 22, color: textSecondary),
+                    onPressed: () {},
+                    tooltip: 'Settings',
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, Color primaryColor, Color secondaryColor, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: primaryColor),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                color: primaryColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
       ),
     );
