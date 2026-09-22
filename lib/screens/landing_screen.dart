@@ -348,29 +348,37 @@ class LandingScreen extends StatelessWidget {
             ],
           ),
 
-          // Theme Toggle Button
+          // Theme Toggle Button with comfortable mobile touch target
           ValueListenableBuilder<ThemeMode>(
             valueListenable: themeController,
             builder: (context, mode, child) {
-              return InkWell(
-                onTap: () => themeController.toggleTheme(),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(7.5),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : const Color(0xFFEDE8DC),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 0.8,
+              return Tooltip(
+                message: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                child: InkWell(
+                  onTap: () => themeController.toggleTheme(),
+                  borderRadius: BorderRadius.circular(22),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(7.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFEDE8DC),
+                          border: Border.all(
+                            color: borderColor,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Icon(
+                          isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                          size: 15,
+                          color: textPrimary,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Icon(
-                    isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
-                    size: 15,
-                    color: textPrimary,
                   ),
                 ),
               );

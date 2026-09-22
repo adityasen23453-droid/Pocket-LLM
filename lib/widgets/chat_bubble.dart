@@ -32,15 +32,16 @@ class ChatBubble extends StatelessWidget {
   Widget _buildUserBubble(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final timeStr = _formatTime(message.timestamp);
+    final maxBubbleWidth = min(MediaQuery.of(context).size.width * 0.80, 440.0);
 
     return Padding(
-      padding: const EdgeInsets.only(left: 48, right: 16, top: 6, bottom: 8),
+      padding: const EdgeInsets.only(left: 48, right: 16, top: 4, bottom: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Container(
-            constraints: const BoxConstraints(maxWidth: 580),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
@@ -49,7 +50,12 @@ class ChatBubble extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(6),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
@@ -62,21 +68,21 @@ class ChatBubble extends StatelessWidget {
               message.text,
               style: const TextStyle(
                 color: Color(0xFFF7F4EE),
-                fontSize: 14.5,
-                height: 1.4,
-                letterSpacing: -0.1,
+                fontSize: 15,
+                height: 1.48,
+                letterSpacing: -0.15,
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Padding(
             padding: const EdgeInsets.only(right: 6),
             child: Text(
               timeStr,
               style: TextStyle(
-                color: isDark ? const Color(0xFF8BB596) : const Color(0xFF767B76),
-                fontSize: 11.5,
-                fontWeight: FontWeight.w400,
+                color: isDark ? const Color(0xFF8E928E) : const Color(0xFF6E736E),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -88,15 +94,16 @@ class ChatBubble extends StatelessWidget {
   Widget _buildAiBubble(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final timeStr = _formatTime(message.timestamp);
+    final maxBubbleWidth = min(MediaQuery.of(context).size.width * 0.84, 480.0);
 
     final cardBg = isDark ? const Color(0xFF181B19) : Colors.white;
     final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0x35DFCDBC);
     final textPrimary = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
-    final textMuted = isDark ? const Color(0xFFACAFAB) : const Color(0xFF767B76);
+    final textMuted = isDark ? const Color(0xFF8E928E) : const Color(0xFF6E736E);
     final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
 
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 40, top: 8, bottom: 10),
+      padding: const EdgeInsets.only(left: 16, right: 36, top: 6, bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -153,11 +160,16 @@ class ChatBubble extends StatelessWidget {
 
                 if (message.text.isNotEmpty)
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 580),
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                     decoration: BoxDecoration(
                       color: cardBg,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(6),
+                        topRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
                       border: Border.all(
                         color: borderColor,
                         width: 0.8,
@@ -176,27 +188,28 @@ class ChatBubble extends StatelessWidget {
                       message.text,
                       style: TextStyle(
                         color: textPrimary,
-                        fontSize: 14.5,
-                        height: 1.45,
-                        letterSpacing: -0.1,
+                        fontSize: 15,
+                        height: 1.5,
+                        letterSpacing: -0.15,
                       ),
                     ),
                   ),
 
-                const SizedBox(height: 6),
+                const SizedBox(height: 2),
 
-                // Action Row underneath AI Message: Timestamp + Copy/Like/Speaker icons
+                // Action Row underneath AI Message: Timestamp + Comfortable Touch Action Icons
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.only(left: 4, right: 2),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         timeStr,
                         style: TextStyle(
                           color: textMuted,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w400,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       Row(
@@ -204,7 +217,7 @@ class ChatBubble extends StatelessWidget {
                         children: [
                           _actionIconButton(
                             context,
-                            Icons.copy_rounded,
+                            Icons.content_copy_rounded,
                             'Copy',
                             () {
                               Clipboard.setData(ClipboardData(text: message.text));
@@ -217,20 +230,32 @@ class ChatBubble extends StatelessWidget {
                             },
                             textMuted,
                           ),
-                          const SizedBox(width: 8),
                           _actionIconButton(
                             context,
-                            Icons.thumb_up_alt_outlined,
-                            'Like',
-                            () {},
+                            Icons.thumb_up_outlined,
+                            'Good response',
+                            () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Feedback saved'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
                             textMuted,
                           ),
-                          const SizedBox(width: 8),
                           _actionIconButton(
                             context,
-                            Icons.volume_up_rounded,
+                            Icons.volume_up_outlined,
                             'Read aloud',
-                            () {},
+                            () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Reading aloud...'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
                             textMuted,
                           ),
                         ],
@@ -246,18 +271,27 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _actionIconButton(BuildContext context, IconData icon, String tooltip, VoidCallback onTap, Color iconColor) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Tooltip(
-        message: tooltip,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Icon(
-            icon,
-            size: 15.5,
-            color: iconColor,
+  Widget _actionIconButton(
+    BuildContext context,
+    IconData icon,
+    String tooltip,
+    VoidCallback onTap,
+    Color iconColor,
+  ) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Center(
+            child: Icon(
+              icon,
+              size: 16,
+              color: iconColor,
+            ),
           ),
         ),
       ),
@@ -327,7 +361,12 @@ class _PocketLLMThinkingIndicatorState extends State<PocketLLMThinkingIndicator>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(18),
+                bottomLeft: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+              ),
               border: Border.all(color: borderColor, width: 0.8),
               boxShadow: [
                 BoxShadow(

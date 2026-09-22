@@ -309,7 +309,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -327,29 +327,35 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(22),
               child: Tooltip(
                 message: _isEmptyChat ? 'Open menu' : 'Close chat',
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: buttonBg,
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
                   child: Center(
-                    child: Icon(
-                      _isEmptyChat ? Icons.menu_rounded : Icons.close_rounded,
-                      size: 20,
-                      color: iconColor,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: buttonBg,
+                        border: Border.all(
+                          color: borderColor,
+                          width: 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _isEmptyChat ? Icons.menu_rounded : Icons.close_rounded,
+                          size: 20,
+                          color: iconColor,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -373,7 +379,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // Right: Theme Toggle Button + Receipt/History Drawer Button
+          // Right: Theme Toggle Button + Chat History Button
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -383,51 +389,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(22),
                 child: Tooltip(
                   message: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: buttonBg,
-                      border: Border.all(
-                        color: borderColor,
-                        width: 1.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
                     child: Center(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
-                          key: ValueKey<bool>(isDark),
-                          size: 19,
-                          color: isDark ? const Color(0xFFD4AF37) : emeraldAccent,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Active Chat History Button
-              if (!_isEmptyChat) ...[
-                const SizedBox(width: 8),
-                Builder(
-                  builder: (ctx) => InkWell(
-                    onTap: () => Scaffold.of(ctx).openDrawer(),
-                    borderRadius: BorderRadius.circular(22),
-                    child: Tooltip(
-                      message: 'Chat History',
                       child: Container(
-                        width: 42,
-                        height: 42,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: buttonBg,
@@ -444,10 +412,60 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           ],
                         ),
                         child: Center(
-                          child: Icon(
-                            Icons.receipt_long_rounded,
-                            size: 19,
-                            color: iconColor,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                              key: ValueKey<bool>(isDark),
+                              size: 19,
+                              color: isDark ? const Color(0xFFD4AF37) : emeraldAccent,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Active Chat History Button
+              if (!_isEmptyChat) ...[
+                const SizedBox(width: 4),
+                Builder(
+                  builder: (ctx) => InkWell(
+                    onTap: () => Scaffold.of(ctx).openDrawer(),
+                    borderRadius: BorderRadius.circular(22),
+                    child: Tooltip(
+                      message: 'Chat History',
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: buttonBg,
+                              border: Border.all(
+                                color: borderColor,
+                                width: 1.0,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.history_rounded,
+                                size: 20,
+                                color: iconColor,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -462,88 +480,278 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  // --- 2. Empty State (Two-Tone Headline + Emerald Crystal Bubble) ---
+  // --- 2. Empty State (Student AI Assistant: Graduation Badge, Italic Headline & 4 Study Cards) ---
   Widget _buildEmptyState(BuildContext context, bool isDark) {
     final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
-    final textDarkOrWhite = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
+    final textPrimary = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
+    final textMuted = isDark ? const Color(0xFF8E928E) : const Color(0xFF6E736E);
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Spacer(flex: 1),
+            constraints: BoxConstraints(minHeight: availableHeight),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // A. Graduation Cap Badge
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark
+                            ? const Color(0xFF1E2620)
+                            : const Color(0xFFE8F0EA),
+                        border: Border.all(
+                          color: emeraldAccent.withValues(alpha: isDark ? 0.35 : 0.22),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.3)
+                                : const Color(0xFF735C4A).withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.school_rounded,
+                          size: 25,
+                          color: emeraldAccent,
+                        ),
+                      ),
+                    ),
 
-                    // A. Two-Tone Gradient Headline in Forest Emerald & Charcoal
+                    const SizedBox(height: 14),
+
+                    // B. Main Headline with Editorial Italic Styling
                     RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 24,
-                          height: 1.25,
-                          fontWeight: FontWeight.w800,
-                          fontFamily: 'sans-serif',
-                          letterSpacing: -0.5,
+                        style: TextStyle(
+                          fontSize: availableHeight < 580 ? 22 : 25,
+                          height: 1.22,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                          letterSpacing: -0.4,
                         ),
                         children: [
+                          const TextSpan(text: 'How can '),
                           TextSpan(
-                            text: 'AI Enables ',
-                            style: TextStyle(color: emeraldAccent),
+                            text: 'PocketLLM',
+                            style: TextStyle(
+                              fontFamily: 'serif',
+                              fontStyle: FontStyle.italic,
+                              color: emeraldAccent,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
                           ),
+                          const TextSpan(text: ' assist\nyour '),
                           TextSpan(
-                            text: 'Smooth Assistant\n',
-                            style: TextStyle(color: textDarkOrWhite),
+                            text: 'studies',
+                            style: TextStyle(
+                              fontFamily: 'serif',
+                              fontStyle: FontStyle.italic,
+                              color: emeraldAccent,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
                           ),
-                          TextSpan(
-                            text: '& Voice ',
-                            style: TextStyle(color: emeraldAccent),
-                          ),
-                          TextSpan(
-                            text: 'Interaction',
-                            style: TextStyle(color: textDarkOrWhite),
-                          ),
+                          const TextSpan(text: ' today?'),
                         ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // C. Subtitle
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: Text(
+                        'Private on-device intelligence for notes, writing, coding & problem solving.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.4,
+                          fontWeight: FontWeight.w400,
+                          color: textMuted,
+                          letterSpacing: -0.1,
+                        ),
                       ),
                     ),
 
                     const SizedBox(height: 18),
 
-                    // B. The 3D Emerald Crystal Soap Bubble (Cropped in circle for identical light & dark appearance)
-                    Center(
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/emerald_glass_bubble.png',
-                          width: 250,
-                          height: 250,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => ClipOval(
-                            child: Image.asset(
-                              'assets/images/iridescent_glass_bubble.png',
-                              width: 250,
-                              height: 250,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const Spacer(flex: 2),
+                    // D. 2x2 Grid of Student Study Cards
+                    _buildStudyCards(isDark, emeraldAccent, textPrimary, textMuted),
                   ],
                 ),
               ),
             ),
+          );
+        },
+      );
+    }
+
+  // --- 2x2 Study Prompt Cards ---
+  Widget _buildStudyCards(
+    bool isDark,
+    Color emeraldAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    final cardBg = isDark ? const Color(0xFF161917) : const Color(0xFFFAF7F0);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.10) : const Color(0x35DFCDBC);
+    final iconBg = isDark ? const Color(0xFF223026) : const Color(0xFFE8F0EA);
+
+    final cards = [
+      (
+        icon: Icons.article_outlined,
+        title: 'Summarize Notes',
+        desc: 'Extract key concepts & exam takeaways',
+        prompt: 'Summarize my notes and extract key concepts & exam takeaways:',
+      ),
+      (
+        icon: Icons.edit_note_rounded,
+        title: 'Draft Essays & Papers',
+        desc: 'Outlines, thesis statements & references',
+        prompt: 'Help me outline and draft an academic essay on:',
+      ),
+      (
+        icon: Icons.terminal_rounded,
+        title: 'Solve & Code',
+        desc: 'Step-by-step logic, math & algorithms',
+        prompt: 'Solve this step-by-step and write clean code:',
+      ),
+      (
+        icon: Icons.lightbulb_outline_rounded,
+        title: 'Explore Concepts',
+        desc: 'Deep dive topics with intuition',
+        prompt: 'Explain this concept in-depth with intuitive analogies:',
+      ),
+    ];
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildSingleStudyCard(cards[0], isDark, cardBg, borderColor, iconBg, emeraldAccent, textPrimary, textMuted)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildSingleStudyCard(cards[1], isDark, cardBg, borderColor, iconBg, emeraldAccent, textPrimary, textMuted)),
+            ],
           ),
-        );
-      },
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildSingleStudyCard(cards[2], isDark, cardBg, borderColor, iconBg, emeraldAccent, textPrimary, textMuted)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildSingleStudyCard(cards[3], isDark, cardBg, borderColor, iconBg, emeraldAccent, textPrimary, textMuted)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleStudyCard(
+    ({IconData icon, String title, String desc, String prompt}) item,
+    bool isDark,
+    Color cardBg,
+    Color borderColor,
+    Color iconBg,
+    Color emeraldAccent,
+    Color textPrimary,
+    Color textMuted,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          _inputController.text = item.prompt;
+          _inputController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _inputController.text.length),
+          );
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: borderColor, width: 1.0),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.25)
+                    : const Color(0xFF735C4A).withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: iconBg,
+                  border: Border.all(
+                    color: emeraldAccent.withValues(alpha: isDark ? 0.25 : 0.15),
+                    width: 0.8,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    size: 17,
+                    color: emeraldAccent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: textPrimary,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                item.desc,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  height: 1.3,
+                  fontWeight: FontWeight.w400,
+                  color: textMuted,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -553,11 +761,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final pillBorder = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0x35DFCDBC);
     final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
     final textIdle = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
-    final iconIdle = isDark ? const Color(0xFFACAFAB) : const Color(0xFF555955);
+    final iconIdle = isDark ? const Color(0xFFACAFAB) : const Color(0xFF5A605A);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: _filterSources.map((source) {
@@ -566,7 +775,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           final isSelected = _selectedFilter == name;
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: InkWell(
               onTap: () {
                 setState(() {
@@ -574,47 +783,52 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 });
                 _inputController.text = 'Help me analyze $name';
               },
-              borderRadius: BorderRadius.circular(20),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: isSelected && !isDark
-                      ? const Color(0xFFEBF4EE)
-                      : pillBg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? emeraldAccent : pillBorder,
-                    width: isSelected ? 1.5 : 0.8,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 15,
-                      color: isSelected ? emeraldAccent : iconIdle,
-                    ),
-                    const SizedBox(width: 7),
-                    Text(
-                      name,
-                      style: TextStyle(
-                        color: isSelected ? emeraldAccent : textIdle,
-                        fontSize: 13.5,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        letterSpacing: -0.1,
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 44,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 13),
+                    decoration: BoxDecoration(
+                      color: isSelected && !isDark
+                          ? const Color(0xFFEBF4EE)
+                          : pillBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? emeraldAccent : pillBorder,
+                        width: isSelected ? 1.4 : 0.8,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 15,
+                          color: isSelected ? emeraldAccent : iconIdle,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          name,
+                          style: TextStyle(
+                            color: isSelected ? emeraldAccent : textIdle,
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -144,30 +144,39 @@ class ChatSidebar extends StatelessWidget {
                     ),
                   ),
 
-                  // Floating Circular Close Button
-                  InkWell(
-                    onTap: () => Navigator.of(context).pop(),
-                    borderRadius: BorderRadius.circular(18),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: cardBg,
-                        border: Border.all(color: borderColor, width: 1.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF735C4A).withValues(alpha: 0.06),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                  // Floating Circular Close Button with 44dp touch target
+                  Tooltip(
+                    message: 'Close drawer',
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(22),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: cardBg,
+                              border: Border.all(color: borderColor, width: 1.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF735C4A).withValues(alpha: 0.06),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: textPrimary,
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 18,
-                          color: textPrimary,
                         ),
                       ),
                     ),
@@ -246,40 +255,44 @@ class ChatSidebar extends StatelessWidget {
             // 3. New Chat Session Primary Action Button (Forest Emerald Theme)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: InkWell(
-                onTap: onNewChat,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? const [Color(0xFF2D4D36), Color(0xFF1B3824)]
-                          : const [Color(0xFF172C1E), Color(0xFF2A5338)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              child: Tooltip(
+                message: 'Start new chat session',
+                child: InkWell(
+                  onTap: onNewChat,
+                  borderRadius: BorderRadius.circular(22),
+                  child: Container(
+                    height: 46,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? const [Color(0xFF2D4D36), Color(0xFF1B3824)]
+                            : const [Color(0xFF172C1E), Color(0xFF2A5338)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(22),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_rounded,
-                        size: 20,
-                        color: Color(0xFFF7F4EE),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'New Chat Session',
-                        style: TextStyle(
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_rounded,
+                          size: 20,
                           color: Color(0xFFF7F4EE),
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.1,
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 8),
+                        Text(
+                          'New Chat Session',
+                          style: TextStyle(
+                            color: Color(0xFFF7F4EE),
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -294,9 +307,9 @@ class ChatSidebar extends StatelessWidget {
                 'RECENT CONVERSATIONS',
                 style: TextStyle(
                   color: textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
                 ),
               ),
             ),
@@ -393,17 +406,23 @@ class ChatSidebar extends StatelessWidget {
                                     ),
                                   ),
 
-                                  // Delete Session Icon
+                                  // Delete Session Action with comfortable touch target
                                   if (onDeleteSession != null && sessions.length > 1)
-                                    InkWell(
-                                      onTap: () => onDeleteSession!(session.id),
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(5),
-                                        child: Icon(
-                                          Icons.delete_outline_rounded,
-                                          size: 16,
-                                          color: textSecondary.withValues(alpha: 0.8),
+                                    Tooltip(
+                                      message: 'Delete conversation',
+                                      child: InkWell(
+                                        onTap: () => onDeleteSession!(session.id),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: SizedBox(
+                                          width: 38,
+                                          height: 38,
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.delete_outline_rounded,
+                                              size: 17,
+                                              color: textSecondary.withValues(alpha: 0.8),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -527,26 +546,35 @@ class ChatSidebar extends StatelessWidget {
                     ),
                   ),
 
-                  // Theme Toggle Button
+                  // Theme Toggle Button with 44dp hit area
                   ValueListenableBuilder<ThemeMode>(
                     valueListenable: themeController,
                     builder: (context, mode, child) {
-                      return InkWell(
-                        onTap: () => themeController.toggleTheme(),
-                        borderRadius: BorderRadius.circular(18),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: bg,
-                            border: Border.all(color: borderColor, width: 0.8),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
-                              size: 18,
-                              color: textSecondary,
+                      return Tooltip(
+                        message: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                        child: InkWell(
+                          onTap: () => themeController.toggleTheme(),
+                          borderRadius: BorderRadius.circular(22),
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: Center(
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: bg,
+                                  border: Border.all(color: borderColor, width: 0.8),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                                    size: 18,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),

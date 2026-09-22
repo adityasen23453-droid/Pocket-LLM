@@ -14,6 +14,7 @@ class ChatInput extends StatefulWidget {
   final VoidCallback? onAttachTap;
   final VoidCallback? onVoiceTap;
   final TextEditingController? controller;
+  final String hintText;
 
   const ChatInput({
     super.key,
@@ -24,6 +25,7 @@ class ChatInput extends StatefulWidget {
     this.onAttachTap,
     this.onVoiceTap,
     this.controller,
+    this.hintText = 'Ask me anything...',
   });
 
   @override
@@ -91,7 +93,6 @@ class _ChatInputState extends State<ChatInput> {
     final buttonBorder = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0x35DFCDBC);
     final textPrimary = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
     final textMuted = isDark ? const Color(0xFF7E827E) : const Color(0xFF767B76);
-    final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
@@ -159,21 +160,23 @@ class _ChatInputState extends State<ChatInput> {
                         focusNode: _focusNode,
                         minLines: 1,
                         maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _handleSend(),
                         style: TextStyle(
                           color: textPrimary,
-                          fontSize: 15.5,
-                          height: 1.4,
-                          letterSpacing: -0.2,
+                          fontSize: 15,
+                          height: 1.45,
+                          letterSpacing: -0.15,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Ask me anything...',
+                          hintText: widget.hintText,
                           hintStyle: TextStyle(
                             color: textMuted,
-                            fontSize: 15.5,
+                            fontSize: 15,
                             fontWeight: FontWeight.w400,
-                            letterSpacing: -0.2,
+                            letterSpacing: -0.15,
                           ),
                           border: InputBorder.none,
                           isDense: true,
@@ -182,152 +185,195 @@ class _ChatInputState extends State<ChatInput> {
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
-                    // B. Action Bar: Attachment Button + Voice Button + Send Button
+                    // B. Action Bar: Attachment (+) + Voice (🎤) + Primary Send (✈)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Attachment Button (🔗)
-                        InkWell(
-                          onTap: widget.onAttachTap ?? () {},
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: buttonBg,
-                              border: Border.all(
-                                color: buttonBorder,
-                                width: 1.0,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF735C4A).withValues(alpha: 0.04),
-                                  blurRadius: 4,
+                        // Tool / Attachment Action (Standard + with 44dp touch target)
+                        Tooltip(
+                          message: 'Add attachment or tools',
+                          child: InkWell(
+                            onTap: widget.onAttachTap ??
+                                () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Attachments and tools coming soon'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                            borderRadius: BorderRadius.circular(22),
+                            child: SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: Center(
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: buttonBg,
+                                    border: Border.all(
+                                      color: buttonBorder,
+                                      width: 1.0,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: isDark
+                                            ? Colors.black.withValues(alpha: 0.2)
+                                            : const Color(0xFF735C4A).withValues(alpha: 0.04),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.add_rounded,
+                                    size: 20,
+                                    color: isDark ? const Color(0xFFACAFAB) : const Color(0xFF424742),
+                                  ),
                                 ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.all_inclusive_rounded,
-                                size: 18,
-                                color: isDark ? const Color(0xFFACAFAB) : const Color(0xFF172C1E),
                               ),
                             ),
                           ),
                         ),
 
-                        // Right Controls: [ ✦ Voice ] and [ ✈ Send ]
+                        // Right Actions: [ 🎤 Voice ] and [ ✈ Send ]
                         Row(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // [ ✦ Voice ] Pill Button
-                            InkWell(
-                              onTap: widget.onVoiceTap ??
-                                  () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Listening to voice input...'),
-                                        duration: Duration(seconds: 1),
+                            // [ 🎤 Voice ] Tactile Button with 44dp touch target
+                            Tooltip(
+                              message: 'Voice input',
+                              child: InkWell(
+                                onTap: widget.onVoiceTap ??
+                                    () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Listening to voice input...'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    },
+                                borderRadius: BorderRadius.circular(18),
+                                child: SizedBox(
+                                  height: 44,
+                                  child: Center(
+                                    child: Container(
+                                      height: 36,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      decoration: BoxDecoration(
+                                        color: buttonBg,
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: buttonBorder,
+                                          width: 1.0,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: isDark
+                                                ? Colors.black.withValues(alpha: 0.2)
+                                                : const Color(0xFF735C4A).withValues(alpha: 0.04),
+                                            blurRadius: 4,
+                                          ),
+                                        ],
                                       ),
-                                    );
-                                  },
-                              borderRadius: BorderRadius.circular(18),
-                              child: Container(
-                                height: 36,
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                decoration: BoxDecoration(
-                                  color: buttonBg,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: buttonBorder,
-                                    width: 1.0,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.mic_none_rounded,
+                                            size: 17,
+                                            color: isDark
+                                                ? const Color(0xFFACAFAB)
+                                                : const Color(0xFF424742),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            'Voice',
+                                            style: TextStyle(
+                                              color: textPrimary,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: -0.1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF735C4A).withValues(alpha: 0.04),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.auto_awesome_rounded,
-                                      size: 15,
-                                      color: emeraldAccent,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Voice',
-                                      style: TextStyle(
-                                        color: textPrimary,
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: -0.1,
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ),
                             ),
 
                             const SizedBox(width: 8),
 
-                            // [ ✈ Send ] Deep Forest Emerald Button
-                            InkWell(
-                              onTap: _handleSend,
-                              borderRadius: BorderRadius.circular(18),
-                              child: Container(
-                                height: 36,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: isDark
-                                        ? const [
-                                            Color(0xFF2D4D36), // Deep Forest Green
-                                            Color(0xFF1B3824),
-                                          ]
-                                        : const [
-                                            Color(0xFF172C1E), // Forest Emerald
-                                            Color(0xFF2A5338),
-                                          ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    widget.isBusy
-                                        ? const SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.send_rounded,
-                                            size: 15,
-                                            color: Colors.white,
+                            // [ ✈ Send ] Primary Action (Solid Deep Forest Emerald CTA)
+                            Tooltip(
+                              message: 'Send message',
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 150),
+                                opacity: (_hasContent || widget.isBusy) ? 1.0 : 0.72,
+                                child: InkWell(
+                                  onTap: _handleSend,
+                                  borderRadius: BorderRadius.circular(19),
+                                  child: SizedBox(
+                                    height: 44,
+                                    child: Center(
+                                      child: Container(
+                                        height: 38,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: isDark
+                                                ? const [
+                                                    Color(0xFF2D4D36), // Deep Forest Green
+                                                    Color(0xFF1B3824),
+                                                  ]
+                                                : const [
+                                                    Color(0xFF172C1E), // Forest Emerald
+                                                    Color(0xFF2A5338),
+                                                  ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
                                           ),
-                                    const SizedBox(width: 6),
-                                    const Text(
-                                      'Send',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -0.1,
+                                          borderRadius: BorderRadius.circular(19),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            widget.isBusy
+                                                ? const SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                    ),
+                                                  )
+                                                : const Icon(
+                                                    Icons.arrow_upward_rounded,
+                                                    size: 16,
+                                                    color: Colors.white,
+                                                  ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              'Send',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: -0.1,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),

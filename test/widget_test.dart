@@ -16,8 +16,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    // Verify Chat Screen is shown - empty state with new aesthetic headline
-    expect(find.textContaining('AI Enables', findRichText: true), findsOneWidget);
+    // Verify Chat Screen is shown - Student AI assistant empty state
+    expect(find.textContaining('How can', findRichText: true), findsOneWidget);
+    expect(find.text('Summarize Notes'), findsOneWidget);
 
     // Verify filter pills are present
     expect(find.text('Docs'), findsOneWidget);
