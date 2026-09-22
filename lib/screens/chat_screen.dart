@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
@@ -8,6 +7,14 @@ import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/chat_sidebar.dart';
 
+/// Warm Editorial Cream & Forest Emerald Theme (Matching Starting Page):
+/// - Warm Editorial Cream canvas (light) / Deep Forest Obsidian canvas (dark)
+/// - Subtle travertine diamond lattice grid
+/// - Top bar with circular menu / close button, 3D Emerald "P" logo, and theme toggle
+/// - Two-tone Forest Emerald & Forest Charcoal bold headline
+/// - 3D emerald crystal soap bubble with microphone & floor reflection
+/// - Quick filter pills: [ Docs ], [ Images ], [ Sheets ], [ Code ]
+/// - Emerald editorial gradient border input with [ ✦ Voice ] & [ ✈ Send ]
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -19,11 +26,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final List<ChatSession> _sessions = [];
   late String _activeSessionId;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _inputController = TextEditingController();
   bool _isGenerating = false;
 
-  // Model selection
-  final List<String> _models = ['PocketLLM Nano', 'Flash Extended', 'PocketLLM Pro'];
-  int _selectedModelIndex = 0;
+  final List<String> _models = ['Smart', 'PocketLLM Nano', 'Flash Extended', 'PocketLLM Pro'];
+  final int _selectedModelIndex = 0;
+
+  // Selected filter pill
+  String _selectedFilter = 'Docs';
+
+  final List<Map<String, dynamic>> _filterSources = [
+    {'name': 'Docs', 'icon': Icons.description_outlined},
+    {'name': 'Images', 'icon': Icons.image_outlined},
+    {'name': 'Sheets', 'icon': Icons.table_chart_outlined},
+    {'name': 'Code', 'icon': Icons.code_rounded},
+  ];
 
   @override
   void initState() {
@@ -42,47 +59,37 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     final pastSession1 = ChatSession(
       id: 'session_2',
-      title: 'What is PocketLLM?',
+      title: 'Voice Assistant Features',
       messages: [
         ChatMessage(
           id: 'msg_2_1',
-          text: 'What is PocketLLM and how does it work?',
+          text: 'Hi, can you help me?',
           isUser: true,
-          timestamp: now.subtract(const Duration(hours: 3)),
+          timestamp: now.subtract(const Duration(hours: 1)),
         ),
         ChatMessage(
           id: 'msg_2_2',
-          text:
-              'PocketLLM is designed to bring powerful AI capabilities directly to your personal devices in an ultra-lightweight, private, and lightning-fast package.',
+          text: "Hello! 👋 Of course, I'm your AI voice assistant. How can I assist you today?",
           isUser: false,
-          timestamp: now.subtract(const Duration(hours: 3, minutes: -1)),
+          timestamp: now.subtract(const Duration(hours: 1, minutes: -1)),
         ),
-      ],
-      lastModified: now.subtract(const Duration(hours: 3)),
-    );
-
-    final pastSession2 = ChatSession(
-      id: 'session_3',
-      title: 'Flutter Architecture Tips',
-      messages: [
         ChatMessage(
-          id: 'msg_3_1',
-          text: 'What are the best practices for clean Flutter architecture?',
+          id: 'msg_2_3',
+          text: 'I want to know about voice features.',
           isUser: true,
-          timestamp: now.subtract(const Duration(days: 1)),
+          timestamp: now.subtract(const Duration(minutes: 45)),
         ),
         ChatMessage(
-          id: 'msg_3_2',
-          text:
-              '1. Separate UI, business logic, and data layers.\n2. Leverage reactive state management.\n3. Implement explicit themes and reusable design tokens.',
+          id: 'msg_2_4',
+          text: 'Sure! 🎤 With AI Voice Assistance, you can chat hands-free, send messages, and get instant replies.',
           isUser: false,
-          timestamp: now.subtract(const Duration(days: 1, minutes: -2)),
+          timestamp: now.subtract(const Duration(minutes: 44)),
         ),
       ],
-      lastModified: now.subtract(const Duration(days: 1)),
+      lastModified: now.subtract(const Duration(hours: 1)),
     );
 
-    _sessions.addAll([defaultSession, pastSession1, pastSession2]);
+    _sessions.addAll([defaultSession, pastSession1]);
     _activeSessionId = defaultSession.id;
   }
 
@@ -114,6 +121,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     setState(() {
       _sessions.insert(0, newSession);
       _activeSessionId = newId;
+    });
+  }
+
+  void _clearCurrentChat() {
+    setState(() {
+      _activeSession.messages.clear();
+      _activeSession.title = 'New Chat';
     });
   }
 
@@ -154,20 +168,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     _scrollToBottom();
 
-    // Simulate AI response
-    Timer(const Duration(milliseconds: 800), () {
+    Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
 
-      final isImageRequest = _isImagePrompt(text);
-      final aiResponseText = _generateMockResponse(text);
+      String reply;
+      final query = text.toLowerCase();
+      if (query.contains('voice')) {
+        reply = 'Sure! 🎤 With AI Voice Assistance, you can chat hands-free, send messages, and get instant replies.';
+      } else if (query.contains('image')) {
+        reply = 'I can generate high-fidelity images, diagrams, and visual concept art directly from your prompts.';
+      } else if (query.contains('help')) {
+        reply = "Hello! 👋 Of course, I'm your AI voice assistant. How can I assist you today?";
+      } else {
+        reply = "I'm ready to assist you with documents, images, sheets, and code analysis.";
+      }
 
       final aiMsg = ChatMessage(
-        id: 'msg_ai_${DateTime.now().millisecondsSinceEpoch}',
-        text: aiResponseText,
+        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+        text: reply,
         isUser: false,
         timestamp: DateTime.now(),
-        isImageGeneration: isImageRequest,
-        imageUrl: isImageRequest ? 'assets/images/vibrant_infinity_logo.png' : null,
       );
 
       setState(() {
@@ -180,36 +200,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
 
-  bool _isImagePrompt(String text) {
-    final lower = text.toLowerCase();
-    return lower.contains('generate image') ||
-        lower.contains('draw') ||
-        lower.contains('create image') ||
-        lower.contains('make image') ||
-        lower.contains('picture of');
-  }
-
-  String _generateMockResponse(String userPrompt) {
-    final lower = userPrompt.toLowerCase();
-    if (_isImagePrompt(userPrompt)) {
-      return 'Here\'s what I generated based on your prompt: "$userPrompt"';
-    }
-    if (lower.contains('hello') || lower.contains('hi')) {
-      return 'Hello! How can I assist you with your project or questions today?';
-    } else if (lower.contains('who are you') || lower.contains('what is pocketllm')) {
-      return 'I am PocketLLM, an on-device, lightweight AI assistant designed to provide instant answers with complete privacy and zero clutter.';
-    } else if (lower.contains('theme')) {
-      return 'PocketLLM features a modern PocketLLM-inspired design with deep OLED blacks, ambient blue gradients, and vibrant accent colors. You can toggle between dark and light themes.';
-    } else {
-      return 'Thanks for your message! PocketLLM is ready to help you summarize, code, brainstorm, and answer questions with precision.\n\nYou asked: "$userPrompt"';
-    }
-  }
-
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          _scrollController.position.maxScrollExtent + 80,
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
@@ -217,161 +212,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _showModelSelector() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF1E1F24) : const Color(0xFFF0F4F9);
-    final textPrimary = isDark ? const Color(0xFFE3E3E8) : const Color(0xFF1F1F1F);
-    final textSecondary = isDark ? const Color(0xFF8E8E98) : const Color(0xFF70757A);
-    final accent = isDark ? const Color(0xFF8AB4F8) : const Color(0xFF1A73E8);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Handle bar
-                    Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF3C3D44) : const Color(0xFFDADCE0),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Text(
-                      'Select Model',
-                      style: TextStyle(
-                        color: textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...List.generate(_models.length, (i) {
-                      final isSelected = i == _selectedModelIndex;
-                      return InkWell(
-                        onTap: () {
-                          setState(() => _selectedModelIndex = i);
-                          setModalState(() {});
-                          Navigator.pop(ctx);
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                          margin: const EdgeInsets.only(bottom: 6),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? accent.withValues(alpha: 0.12)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
-                            border: isSelected
-                                ? Border.all(color: accent, width: 1.5)
-                                : null,
-                          ),
-                          child: Row(
-                            children: [
-                              // Model icon
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: isSelected
-                                      ? const LinearGradient(
-                                          colors: [Color(0xFF4FC3F7), Color(0xFF7C4DFF), Color(0xFFFF4081)],
-                                        )
-                                      : null,
-                                  color: isSelected ? null : (isDark ? const Color(0xFF2A2B31) : const Color(0xFFE2E5EA)),
-                                ),
-                                child: Center(
-                                  child: isSelected
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(18),
-                                          child: Image.asset(
-                                            'assets/images/vibrant_infinity_logo.png',
-                                            width: 36,
-                                            height: 36,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => const Icon(Icons.all_inclusive, size: 18, color: Colors.white),
-                                          ),
-                                        )
-                                      : Icon(Icons.all_inclusive, size: 18, color: textSecondary),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _models[i],
-                                      style: TextStyle(
-                                        color: isSelected ? accent : textPrimary,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _modelDescription(i),
-                                      style: TextStyle(
-                                        color: textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (isSelected)
-                                Icon(Icons.check_circle, color: accent, size: 22),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  String _modelDescription(int index) {
-    switch (index) {
-      case 0:
-        return 'On-device, fast, private';
-      case 1:
-        return 'Extended context, powerful reasoning';
-      case 2:
-        return 'Most capable, multi-modal';
-      default:
-        return '';
-    }
-  }
-
   @override
   void dispose() {
     _scrollController.dispose();
+    _inputController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF101211) : const Color(0xFFF7F4EE);
+    final drawerBg = isDark ? const Color(0xFF101211) : const Color(0xFFFAF7F0);
 
     final sidebarWidget = ChatSidebar(
       sessions: _sessions,
@@ -392,124 +244,56 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF),
+      backgroundColor: scaffoldBg,
       drawer: Drawer(
-        width: 300,
-        backgroundColor: isDark ? const Color(0xFF0D0E11) : Colors.white,
+        width: 310,
+        backgroundColor: drawerBg,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
         ),
         child: sidebarWidget,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar (PocketLLM style)
-            _buildTopBar(context, isDark),
-
-            // Main Chat Area
-            Expanded(
-              child: _isEmptyChat
-                  ? _buildEmptyState(context, isDark)
-                  : _buildChatList(context, isDark),
-            ),
-
-            // Chat Input
-            ChatInput(
-              onSend: _handleSendMessage,
-              isBusy: _isGenerating,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopBar(BuildContext context, bool isDark) {
-    final textPrimary = isDark ? const Color(0xFFE3E3E8) : const Color(0xFF1F1F1F);
-    final textSecondary = isDark ? const Color(0xFF8E8E98) : const Color(0xFF70757A);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
+      body: Stack(
         children: [
-          // Hamburger menu
-          Builder(
-            builder: (context) => IconButton(
-              icon: Icon(Icons.menu, size: 24, color: textPrimary),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              tooltip: 'Open menu',
+          // 1. Subtle Diamond Lattice Background Pattern (Travertine / Forest Lattice)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _DiamondGridPainter(isDark: isDark),
             ),
           ),
 
-          const SizedBox(width: 4),
+          // 2. Main Foreground Layout
+          SafeArea(
+            child: Column(
+              children: [
+                // Top Bar with theme toggle
+                _buildTopBar(context, isDark),
 
-          // Model selector dropdown
-          InkWell(
-            onTap: _showModelSelector,
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _models[_selectedModelIndex].split(' ').first,
-                    style: TextStyle(
-                      color: textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _models[_selectedModelIndex].split(' ').skip(1).join(' '),
-                    style: TextStyle(
-                      color: textSecondary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: 22, color: textSecondary),
-                ],
-              ),
-            ),
-          ),
-
-          const Spacer(),
-
-          // Edit / new chat icon
-          IconButton(
-            icon: Icon(Icons.edit_outlined, size: 22, color: textPrimary),
-            onPressed: _startNewChat,
-            tooltip: 'New Chat',
-          ),
-
-          // User profile avatar
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: InkWell(
-              onTap: () {},
-              borderRadius: BorderRadius.circular(20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'assets/images/pratik_avatar.png',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isDark ? const Color(0xFF2A2B31) : const Color(0xFFE2E5EA),
-                    ),
-                    child: Icon(Icons.person, size: 18, color: textSecondary),
-                  ),
+                // Main Content: Empty Assistant State OR Active Chat Stream
+                Expanded(
+                  child: _isEmptyChat
+                      ? _buildEmptyState(context, isDark)
+                      : _buildChatList(context),
                 ),
-              ),
+
+                // Filter Pills brought down close to chat box
+                if (_isEmptyChat)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: _buildFilterPills(isDark),
+                  ),
+
+                // Emerald Editorial Border Bottom Chat Input
+                ChatInput(
+                  controller: _inputController,
+                  onSend: _handleSendMessage,
+                  isBusy: _isGenerating,
+                  selectedModel: _models[_selectedModelIndex],
+                  onVoiceTap: () {
+                    _inputController.text = 'I want to know about voice features.';
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -517,86 +301,331 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
-    return Stack(
-      children: [
-        // Ambient deep blue glow at center-bottom
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(0, 0.6),
-                radius: 1.2,
-                colors: isDark
-                    ? [
-                        const Color(0xFF060B24).withValues(alpha: 0.8),
-                        const Color(0xFF000000),
-                      ]
-                    : [
-                        const Color(0xFFE8F0FE).withValues(alpha: 0.5),
-                        const Color(0xFFFFFFFF),
-                      ],
+  // --- 1. Top Navigation Bar ---
+  Widget _buildTopBar(BuildContext context, bool isDark) {
+    final buttonBg = isDark ? const Color(0xFF181B19) : const Color(0xFFFAF7F0);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0x35DFCDBC);
+    final iconColor = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
+    final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Left: Circular Button (Hamburger Menu in empty state, Close '✕' in active chat)
+          Builder(
+            builder: (ctx) => InkWell(
+              onTap: () {
+                if (_isEmptyChat) {
+                  Scaffold.of(ctx).openDrawer();
+                } else {
+                  _clearCurrentChat();
+                }
+              },
+              borderRadius: BorderRadius.circular(22),
+              child: Tooltip(
+                message: _isEmptyChat ? 'Open menu' : 'Close chat',
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: buttonBg,
+                    border: Border.all(
+                      color: borderColor,
+                      width: 1.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      _isEmptyChat ? Icons.menu_rounded : Icons.close_rounded,
+                      size: 20,
+                      color: iconColor,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
 
-        // Centered logo + prompt text
-        Center(
-          child: Column(
+          // Center: 3D PocketLLM Emerald & Platinum "P" Logo Icon
+          Image.asset(
+            'assets/images/pocketllm_logo.png',
+            width: 38,
+            height: 38,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Text(
+              'PocketLLM',
+              style: TextStyle(
+                color: iconColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+
+          // Right: Theme Toggle Button + Receipt/History Drawer Button
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Vibrant infinity logo
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: Image.asset(
-                    'assets/images/vibrant_infinity_logo.png',
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 56,
-                      height: 56,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF4FC3F7), Color(0xFFAB47BC), Color(0xFFFF7043)],
+              // Theme Toggle Button (☀️ / 🌙)
+              InkWell(
+                onTap: () => themeController.toggleTheme(),
+                borderRadius: BorderRadius.circular(22),
+                child: Tooltip(
+                  message: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: buttonBg,
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                          key: ValueKey<bool>(isDark),
+                          size: 19,
+                          color: isDark ? const Color(0xFFD4AF37) : emeraldAccent,
                         ),
                       ),
-                      child: const Icon(Icons.all_inclusive, size: 30, color: Colors.white),
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 28),
-
-              // "What should we focus on?"
-              Text(
-                'What should we focus\non?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isDark ? const Color(0xFFE3E3E8) : const Color(0xFF1F1F1F),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w400,
-                  height: 1.3,
-                  letterSpacing: -0.5,
+              // Active Chat History Button
+              if (!_isEmptyChat) ...[
+                const SizedBox(width: 8),
+                Builder(
+                  builder: (ctx) => InkWell(
+                    onTap: () => Scaffold.of(ctx).openDrawer(),
+                    borderRadius: BorderRadius.circular(22),
+                    child: Tooltip(
+                      message: 'Chat History',
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: buttonBg,
+                          border: Border.all(
+                            color: borderColor,
+                            width: 1.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isDark ? Colors.black.withValues(alpha: 0.35) : const Color(0xFF735C4A).withValues(alpha: 0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.receipt_long_rounded,
+                            size: 19,
+                            color: iconColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildChatList(BuildContext context, bool isDark) {
+  // --- 2. Empty State (Two-Tone Headline + Emerald Crystal Bubble) ---
+  Widget _buildEmptyState(BuildContext context, bool isDark) {
+    final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
+    final textDarkOrWhite = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Spacer(flex: 1),
+
+                    // A. Two-Tone Gradient Headline in Forest Emerald & Charcoal
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 24,
+                          height: 1.25,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: 'sans-serif',
+                          letterSpacing: -0.5,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'AI Enables ',
+                            style: TextStyle(color: emeraldAccent),
+                          ),
+                          TextSpan(
+                            text: 'Smooth Assistant\n',
+                            style: TextStyle(color: textDarkOrWhite),
+                          ),
+                          TextSpan(
+                            text: '& Voice ',
+                            style: TextStyle(color: emeraldAccent),
+                          ),
+                          TextSpan(
+                            text: 'Interaction',
+                            style: TextStyle(color: textDarkOrWhite),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // B. The 3D Emerald Crystal Soap Bubble (Cropped in circle for identical light & dark appearance)
+                    Center(
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/emerald_glass_bubble.png',
+                          width: 250,
+                          height: 250,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => ClipOval(
+                            child: Image.asset(
+                              'assets/images/iridescent_glass_bubble.png',
+                              width: 250,
+                              height: 250,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(flex: 2),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- Filter Pills: Docs, Images, Sheets, Code ---
+  Widget _buildFilterPills(bool isDark) {
+    final pillBg = isDark ? const Color(0xFF181B19) : const Color(0xFFFAF7F0);
+    final pillBorder = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0x35DFCDBC);
+    final emeraldAccent = isDark ? const Color(0xFF8BB596) : const Color(0xFF172C1E);
+    final textIdle = isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A);
+    final iconIdle = isDark ? const Color(0xFFACAFAB) : const Color(0xFF555955);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: _filterSources.map((source) {
+          final name = source['name'] as String;
+          final icon = source['icon'] as IconData;
+          final isSelected = _selectedFilter == name;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedFilter = name;
+                });
+                _inputController.text = 'Help me analyze $name';
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: isSelected && !isDark
+                      ? const Color(0xFFEBF4EE)
+                      : pillBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? emeraldAccent : pillBorder,
+                    width: isSelected ? 1.5 : 0.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 15,
+                      color: isSelected ? emeraldAccent : iconIdle,
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      name,
+                      style: TextStyle(
+                        color: isSelected ? emeraldAccent : textIdle,
+                        fontSize: 13.5,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // --- 3. Active Chat Stream ---
+  Widget _buildChatList(BuildContext context) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -605,9 +634,48 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         if (index < _activeSession.messages.length) {
           return ChatBubble(message: _activeSession.messages[index]);
         }
-        // Thinking indicator
         return const PocketLLMThinkingIndicator();
       },
     );
   }
+}
+
+/// Custom painter to render the subtle isometric diamond lattice grid from the starting page
+class _DiamondGridPainter extends CustomPainter {
+  final bool isDark;
+
+  _DiamondGridPainter({this.isDark = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = isDark
+          ? const Color(0xFF8BB596).withValues(alpha: 0.05)
+          : const Color(0xFFDFCDBC).withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+
+    const spacing = 32.0;
+
+    // Diagonal lines from top-left to bottom-right
+    for (double i = -size.height; i < size.width + size.height; i += spacing) {
+      canvas.drawLine(
+        Offset(i, 0),
+        Offset(i + size.height, size.height),
+        paint,
+      );
+    }
+
+    // Diagonal lines from top-right to bottom-left
+    for (double i = -size.height; i < size.width + size.height; i += spacing) {
+      canvas.drawLine(
+        Offset(i, 0),
+        Offset(i - size.height, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DiamondGridPainter oldDelegate) => oldDelegate.isDark != isDark;
 }

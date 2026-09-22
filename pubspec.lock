@@ -139,6 +139,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  siri_orb:
+    dependency: "direct main"
+    description:
+      name: siri_orb
+      sha256: "477d882424c5f8edefc7415721ca2b9477e8a834bdb7cdd0bb218cb1b19c11a2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.3"
   sky_engine:
     dependency: transitive
     description: flutter

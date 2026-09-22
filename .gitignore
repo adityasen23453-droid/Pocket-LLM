@@ -4,6 +4,13 @@
 *.pyc
 *.swp
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+[Tt]humbs.db
+[Dd]esktop.ini
 .atom/
 .build/
 .buildlog/
@@ -12,37 +19,52 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# IDEs and Editors
 *.iml
 *.ipr
 *.iws
 .idea/
+.vscode/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
+# Flutter / Dart / Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
 /coverage/
 
-# Symbolication related
+# Symbolication and Obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android build and local files
 /android/app/debug
 /android/app/profile
 /android/app/release
+.gradle/
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+
+# iOS and macOS
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/macos/Flutter/ephemeral/
+
+# Windows
+windows/flutter/ephemeral/
+*.vcxproj.user
+
+# Linux
+linux/flutter/ephemeral/
 
 # Widget Preview related
 .widget_preview/
