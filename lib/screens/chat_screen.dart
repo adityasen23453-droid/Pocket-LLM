@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/chat_sidebar.dart';
+import '../services/api_service.dart';
+import '../services/offline_ai_service.dart';
+import '../services/offline_rag_service.dart';
+import '../services/chat_history_service.dart';
+import '../widgets/offline_model_sheet.dart';
 
 /// Warm Editorial Cream & Forest Emerald Theme (Matching Starting Page):
 /// - Warm Editorial Cream canvas (light) / Deep Forest Obsidian canvas (dark)
@@ -28,6 +34,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
   bool _isGenerating = false;
+  StreamSubscription<String>? _chatStreamSubscription;
+  String? _stagedFileName;
+  int? _stagedFileChunks;
+
+  final ApiService _apiService = ApiService();
+  final OfflineAiService _offlineAiService = OfflineAiService();
+  final OfflineRagService _offlineRagService = OfflineRagService();
+  final ChatHistoryService _chatHistoryService = ChatHistoryService();
+  bool _isBackendOnline = false;
+  bool _isOfflineModelReady = false;
+  String _backendDevice = 'cuda';
 
   final List<String> _models = ['Smart', 'PocketLLM Nano', 'Flash Extended', 'PocketLLM Pro'];
   final int _selectedModelIndex = 0;
@@ -45,51 +62,55 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _initDefaultSessions();
+    _loadHistoryAndInit();
+    _checkBackend();
+    _initOfflineAi();
+  }
+
+  Future<void> _loadHistoryAndInit() async {
+    await _offlineRagService.init();
+    final savedSessions = await _chatHistoryService.loadSessions();
+    if (mounted) {
+      setState(() {
+        if (savedSessions.isNotEmpty) {
+          _sessions.clear();
+          _sessions.addAll(savedSessions);
+          _activeSessionId = _sessions.first.id;
+        } else {
+          _initDefaultSessions();
+        }
+      });
+    }
+  }
+
+  Future<void> _initOfflineAi() async {
+    final ready = await _offlineAiService.initModel();
+    if (mounted) {
+      setState(() {
+        _isOfflineModelReady = ready;
+      });
+    }
+  }
+
+  Future<void> _checkBackend() async {
+    final health = await _apiService.checkHealth();
+    if (mounted) {
+      setState(() {
+        _isBackendOnline = health['status'] == 'online';
+        _backendDevice = (health['device'] as String?) ?? 'cuda';
+      });
+    }
   }
 
   void _initDefaultSessions() {
     final now = DateTime.now();
     final defaultSession = ChatSession(
-      id: 'session_1',
+      id: 'session_${now.millisecondsSinceEpoch}',
       title: 'New Chat',
       messages: [],
       lastModified: now,
     );
-
-    final pastSession1 = ChatSession(
-      id: 'session_2',
-      title: 'Voice Assistant Features',
-      messages: [
-        ChatMessage(
-          id: 'msg_2_1',
-          text: 'Hi, can you help me?',
-          isUser: true,
-          timestamp: now.subtract(const Duration(hours: 1)),
-        ),
-        ChatMessage(
-          id: 'msg_2_2',
-          text: "Hello! 👋 Of course, I'm your AI voice assistant. How can I assist you today?",
-          isUser: false,
-          timestamp: now.subtract(const Duration(hours: 1, minutes: -1)),
-        ),
-        ChatMessage(
-          id: 'msg_2_3',
-          text: 'I want to know about voice features.',
-          isUser: true,
-          timestamp: now.subtract(const Duration(minutes: 45)),
-        ),
-        ChatMessage(
-          id: 'msg_2_4',
-          text: 'Sure! 🎤 With AI Voice Assistance, you can chat hands-free, send messages, and get instant replies.',
-          isUser: false,
-          timestamp: now.subtract(const Duration(minutes: 44)),
-        ),
-      ],
-      lastModified: now.subtract(const Duration(hours: 1)),
-    );
-
-    _sessions.addAll([defaultSession, pastSession1]);
+    _sessions.add(defaultSession);
     _activeSessionId = defaultSession.id;
   }
 
@@ -121,18 +142,28 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     setState(() {
       _sessions.insert(0, newSession);
       _activeSessionId = newId;
+      _stagedFileName = null;
+      _stagedFileChunks = null;
     });
+    _chatHistoryService.saveSessions(_sessions);
   }
 
   void _clearCurrentChat() {
     setState(() {
       _activeSession.messages.clear();
       _activeSession.title = 'New Chat';
+      _activeSession.activeDocuments.clear();
+      _stagedFileName = null;
+      _stagedFileChunks = null;
     });
+    _chatHistoryService.saveSessions(_sessions);
   }
 
   void _deleteSession(String id) {
-    if (_sessions.length <= 1) return;
+    if (_sessions.length <= 1) {
+      _clearCurrentChat();
+      return;
+    }
     setState(() {
       final index = _sessions.indexWhere((s) => s.id == id);
       _sessions.removeWhere((s) => s.id == id);
@@ -141,19 +172,62 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _activeSessionId = _sessions[newIndex].id;
       }
     });
+    _chatHistoryService.saveSessions(_sessions);
   }
 
-  void _handleSendMessage(String text) {
+  void _handleStopGenerating() {
+    _chatStreamSubscription?.cancel();
+    _chatStreamSubscription = null;
+    _offlineAiService.ensureIdle();
+    if (mounted) {
+      setState(() {
+        _isGenerating = false;
+      });
+    }
+  }
+
+  Future<void> _handleSendMessage(String text) async {
+    if (_isGenerating) return;
+
+    if (!_offlineAiService.isModelLoaded && !_isBackendOnline) {
+      final ready = await _offlineAiService.initModel();
+      if (!ready && mounted) {
+        OfflineModelSheet.show(
+          context,
+          onModelReady: () {
+            if (mounted) {
+              setState(() {
+                _isOfflineModelReady = true;
+              });
+              _handleSendMessage(text);
+            }
+          },
+        );
+        return;
+      }
+    }
+
+    final attachedName = _stagedFileName;
+    final attachedChunks = _stagedFileChunks;
+
     final userMsg = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
       text: text,
       isUser: true,
       timestamp: DateTime.now(),
+      attachedFileName: attachedName,
+      attachedFileChunks: attachedChunks,
     );
 
     final session = _activeSession;
+    if (attachedName != null) {
+      session.activeDocument = attachedName;
+    }
+    final docForQuery = attachedName ?? session.activeDocument;
 
     setState(() {
+      _stagedFileName = null;
+      _stagedFileChunks = null;
       session.messages.add(userMsg);
       session.lastModified = DateTime.now();
       if (session.title == 'New Chat' || session.title.isEmpty) {
@@ -166,38 +240,248 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _isGenerating = true;
     });
 
+    _chatHistoryService.saveSessions(_sessions);
     _scrollToBottom();
 
-    Timer(const Duration(milliseconds: 1000), () {
-      if (!mounted) return;
+    // Prepare sliding history window (at most last 4 non-error turns to protect context limit)
+    final allValidHistory = session.messages
+        .take(session.messages.length - 1)
+        .where((m) =>
+            m.text.trim().isNotEmpty &&
+            !m.text.startsWith('⚠️') &&
+            !m.text.startsWith('PocketLLM · AJU Offline AI'))
+        .toList();
 
-      String reply;
-      final query = text.toLowerCase();
-      if (query.contains('voice')) {
-        reply = 'Sure! 🎤 With AI Voice Assistance, you can chat hands-free, send messages, and get instant replies.';
-      } else if (query.contains('image')) {
-        reply = 'I can generate high-fidelity images, diagrams, and visual concept art directly from your prompts.';
-      } else if (query.contains('help')) {
-        reply = "Hello! 👋 Of course, I'm your AI voice assistant. How can I assist you today?";
+    final recentTurns = allValidHistory.length > 4
+        ? allValidHistory.sublist(allValidHistory.length - 4)
+        : allValidHistory;
+
+    final history = recentTurns
+        .map((m) => {
+              'role': m.isUser ? 'user' : 'assistant',
+              'content': m.text,
+            })
+        .toList();
+
+    final aiMsgId = 'msg_${DateTime.now().millisecondsSinceEpoch}_ai';
+    String accumulatedText = '';
+    List<String> receivedSources = [];
+
+    // Create placeholder for incoming streaming tokens
+    final placeholderAiMsg = ChatMessage(
+      id: aiMsgId,
+      text: '',
+      isUser: false,
+      timestamp: DateTime.now(),
+      sources: null,
+    );
+
+    setState(() {
+      session.messages.add(placeholderAiMsg);
+    });
+
+    try {
+      final completer = Completer<void>();
+      final Stream<String> tokenStream;
+
+      if (_offlineAiService.isModelLoaded || !_isBackendOnline) {
+        // Query on-device RAG engine if session has attached documents or staged document
+        final activeDocs = List<String>.from(session.activeDocuments);
+        if (docForQuery != null && !activeDocs.contains(docForQuery)) {
+          activeDocs.add(docForQuery);
+        }
+
+        List<String> contextTexts = [];
+        if (activeDocs.isNotEmpty) {
+          final retrieved = _offlineRagService.retrieve(
+            query: text,
+            activeDocuments: activeDocs,
+            topK: 4,
+          );
+          if (retrieved.isNotEmpty) {
+            contextTexts = retrieved.map((c) => c.text).toList();
+            receivedSources = retrieved
+                .map((c) => '${c.source} (p. ${c.page})')
+                .toSet()
+                .toList();
+          }
+        }
+
+        tokenStream = _offlineAiService.streamChat(
+          message: text,
+          history: history,
+          contextChunks: contextTexts.isNotEmpty ? contextTexts : null,
+          activeDocument: docForQuery,
+        );
       } else {
-        reply = "I'm ready to assist you with documents, images, sheets, and code analysis.";
+        tokenStream = _apiService.streamChat(
+          message: text,
+          history: history,
+          useRag: true,
+          activeDocument: docForQuery,
+          onSources: (sources) {
+            receivedSources = sources;
+            if (mounted) {
+              final idx = session.messages.indexWhere((m) => m.id == aiMsgId);
+              if (idx != -1) {
+                setState(() {
+                  session.messages[idx] = ChatMessage(
+                    id: aiMsgId,
+                    text: accumulatedText,
+                    isUser: false,
+                    timestamp: DateTime.now(),
+                    sources: List.from(receivedSources),
+                  );
+                });
+              }
+            }
+          },
+        );
       }
 
-      final aiMsg = ChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-        text: reply,
-        isUser: false,
-        timestamp: DateTime.now(),
+      _chatStreamSubscription = tokenStream.listen(
+        (token) {
+          if (!mounted) return;
+          accumulatedText += token;
+          final idx = session.messages.indexWhere((m) => m.id == aiMsgId);
+          if (idx != -1) {
+            setState(() {
+              session.messages[idx] = ChatMessage(
+                id: aiMsgId,
+                text: accumulatedText,
+                isUser: false,
+                timestamp: DateTime.now(),
+                sources: receivedSources.isNotEmpty ? List.from(receivedSources) : null,
+              );
+            });
+            _scrollToBottom();
+          }
+        },
+        onError: (err) {
+          if (!completer.isCompleted) completer.completeError(err);
+        },
+        onDone: () {
+          if (!completer.isCompleted) completer.complete();
+          _chatHistoryService.saveSessions(_sessions);
+        },
+        cancelOnError: true,
       );
 
-      setState(() {
-        session.messages.add(aiMsg);
-        session.lastModified = DateTime.now();
-        _isGenerating = false;
-      });
+      await completer.future;
+    } catch (e) {
+      if (mounted) {
+        final idx = session.messages.indexWhere((m) => m.id == aiMsgId);
+        if (idx != -1) {
+          setState(() {
+            session.messages[idx] = ChatMessage(
+              id: aiMsgId,
+              text: accumulatedText.isNotEmpty
+                  ? accumulatedText
+                  : "PocketLLM · AJU Offline AI is active.\n\n"
+                    "Tip: Make sure the model is loaded via the top status badge, or try asking your question with a brief prompt.",
+              isUser: false,
+              timestamp: DateTime.now(),
+            );
+          });
+        }
+      }
+    } finally {
+      _chatStreamSubscription = null;
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+        _scrollToBottom();
+      }
+      _chatHistoryService.saveSessions(_sessions);
+    }
+  }
 
-      _scrollToBottom();
-    });
+  Future<void> _handleAttachFile() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'txt', 'md'],
+      );
+
+      if (files.isNotEmpty) {
+        final file = files.first;
+        final name = file.name;
+        final bytes = await file.readAsBytes();
+
+        if (bytes.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('File appears to be empty.')),
+            );
+          }
+          return;
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Processing & indexing $name on-device...'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+
+        // 1. Process directly on-device using offline RAG service
+        final parseResult = await _offlineRagService.indexDocument(bytes: bytes, filename: name);
+
+        if (!parseResult.success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFF4A1E1E),
+                content: Text(
+                  parseResult.message,
+                  style: const TextStyle(color: Color(0xFFFFB4AB), fontWeight: FontWeight.bold),
+                ),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+
+        final chunks = parseResult.chunksCount;
+
+        // 2. If laptop backend is also online, optionally sync
+        if (_isBackendOnline) {
+          try {
+            await _apiService.uploadDocument(bytes: bytes, filename: name);
+            await _checkBackend();
+          } catch (_) {}
+        }
+
+        if (mounted) {
+          setState(() {
+            _stagedFileName = name;
+            _stagedFileChunks = chunks;
+            _activeSession.activeDocument = name;
+          });
+          _chatHistoryService.saveSessions(_sessions);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF172C1E),
+              content: Text(
+                'Indexed $chunks chunks from $name into on-device RAG storage!',
+                style: const TextStyle(color: Color(0xFF8BB596), fontWeight: FontWeight.bold),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Document indexing error: $e')),
+        );
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -214,6 +498,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _chatStreamSubscription?.cancel();
     _scrollController.dispose();
     _inputController.dispose();
     super.dispose();
@@ -287,8 +572,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 ChatInput(
                   controller: _inputController,
                   onSend: _handleSendMessage,
+                  onStop: _handleStopGenerating,
                   isBusy: _isGenerating,
                   selectedModel: _models[_selectedModelIndex],
+                  stagedFileName: _stagedFileName,
+                  stagedFileChunks: _stagedFileChunks,
+                  onRemoveStagedFile: () {
+                    setState(() {
+                      _stagedFileName = null;
+                      _stagedFileChunks = null;
+                    });
+                  },
+                  onAttachTap: _handleAttachFile,
                   onVoiceTap: () {
                     _inputController.text = 'I want to know about voice features.';
                   },
@@ -363,20 +658,85 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // Center: 3D PocketLLM Emerald & Platinum "P" Logo Icon
-          Image.asset(
-            'assets/images/pocketllm_logo.png',
-            width: 38,
-            height: 38,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => Text(
-              'PocketLLM',
-              style: TextStyle(
-                color: iconColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+          // Center: 3D PocketLLM Emerald & Platinum "P" Logo Icon + Live Offline/CUDA badge
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/aju_pocketllm_logo.png',
+                  width: 34,
+                  height: 34,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Text(
+                    'PocketLLM · AJU',
+                    style: TextStyle(
+                      color: iconColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              GestureDetector(
+                onTap: () {
+                  OfflineModelSheet.show(
+                    context,
+                    onModelReady: () {
+                      if (mounted) {
+                        setState(() {
+                          _isOfflineModelReady = true;
+                        });
+                      }
+                    },
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: (_isOfflineModelReady || _isBackendOnline)
+                        ? (isDark ? const Color(0xFF1B3824) : const Color(0xFFE8F2EB))
+                        : (isDark ? const Color(0xFF2B2018) : const Color(0xFFF7EFE8)),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (_isOfflineModelReady || _isBackendOnline)
+                          ? (isDark ? const Color(0xFF8BB596).withValues(alpha: 0.5) : const Color(0xFF2E6B41).withValues(alpha: 0.3))
+                          : const Color(0xFFD48B40).withValues(alpha: 0.4),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: (_isOfflineModelReady || _isBackendOnline) ? const Color(0xFF4CAF50) : const Color(0xFFFFA000),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        _isOfflineModelReady
+                            ? 'OFFLINE AI (1.5B)'
+                            : (_isBackendOnline
+                                ? '${_backendDevice.toUpperCase()} ONLINE'
+                                : 'TAP FOR OFFLINE AI'),
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: _isBackendOnline
+                              ? (isDark ? const Color(0xFF8BB596) : const Color(0xFF1E562F))
+                              : const Color(0xFFB57028),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
 
           // Right: Theme Toggle Button + Chat History Button
@@ -843,12 +1203,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: _activeSession.messages.length + (_isGenerating ? 1 : 0),
+      itemCount: _activeSession.messages.length,
       itemBuilder: (context, index) {
-        if (index < _activeSession.messages.length) {
-          return ChatBubble(message: _activeSession.messages[index]);
+        final msg = _activeSession.messages[index];
+        if (!msg.isUser && msg.text.isEmpty && _isGenerating) {
+          return const PocketLLMThinkingIndicator();
         }
-        return const PocketLLMThinkingIndicator();
+        return ChatBubble(message: msg);
       },
     );
   }

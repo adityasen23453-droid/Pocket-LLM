@@ -11,10 +11,14 @@ class ChatInput extends StatefulWidget {
   final bool isBusy;
   final String selectedModel;
   final VoidCallback? onModelTap;
+  final VoidCallback? onStop;
   final VoidCallback? onAttachTap;
   final VoidCallback? onVoiceTap;
   final TextEditingController? controller;
   final String hintText;
+  final String? stagedFileName;
+  final int? stagedFileChunks;
+  final VoidCallback? onRemoveStagedFile;
 
   const ChatInput({
     super.key,
@@ -22,10 +26,14 @@ class ChatInput extends StatefulWidget {
     this.isBusy = false,
     this.selectedModel = 'Smart',
     this.onModelTap,
+    this.onStop,
     this.onAttachTap,
     this.onVoiceTap,
     this.controller,
     this.hintText = 'Ask me anything...',
+    this.stagedFileName,
+    this.stagedFileChunks,
+    this.onRemoveStagedFile,
   });
 
   @override
@@ -145,6 +153,44 @@ class _ChatInputState extends State<ChatInput> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (widget.stagedFileName != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E2822) : const Color(0xFFEAF4ED),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF8BB596).withValues(alpha: 0.3) : const Color(0xFF2A5338).withValues(alpha: 0.2),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.description_rounded, size: 16, color: Color(0xFF4CAF50)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${widget.stagedFileName!} • ${widget.stagedFileChunks ?? 0} chunks ready',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? const Color(0xFFF7F4EE) : const Color(0xFF14261A),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (widget.onRemoveStagedFile != null)
+                              InkWell(
+                                onTap: widget.onRemoveStagedFile,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: Icon(Icons.close_rounded, size: 15, color: textMuted),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     // A. Text Field Area
                     KeyboardListener(
                       focusNode: _keyboardFocusNode,
@@ -311,72 +357,110 @@ class _ChatInputState extends State<ChatInput> {
 
                             const SizedBox(width: 8),
 
-                            // [ ✈ Send ] Primary Action (Solid Deep Forest Emerald CTA)
-                            Tooltip(
-                              message: 'Send message',
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 150),
-                                opacity: (_hasContent || widget.isBusy) ? 1.0 : 0.72,
-                                child: InkWell(
-                                  onTap: _handleSend,
-                                  borderRadius: BorderRadius.circular(19),
-                                  child: SizedBox(
-                                    height: 44,
-                                    child: Center(
-                                      child: Container(
-                                        height: 38,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: isDark
-                                                ? const [
-                                                    Color(0xFF2D4D36), // Deep Forest Green
-                                                    Color(0xFF1B3824),
-                                                  ]
-                                                : const [
-                                                    Color(0xFF172C1E), // Forest Emerald
-                                                    Color(0xFF2A5338),
-                                                  ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
+                            // [ ⏹ Stop / ✈ Send ] Primary Action
+                            widget.isBusy
+                                ? Tooltip(
+                                    message: 'Stop response',
+                                    child: InkWell(
+                                      onTap: widget.onStop,
+                                      borderRadius: BorderRadius.circular(19),
+                                      child: SizedBox(
+                                        height: 44,
+                                        child: Center(
+                                          child: Container(
+                                            height: 38,
+                                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                                            decoration: BoxDecoration(
+                                              color: isDark ? const Color(0xFF381E1E) : const Color(0xFFFDE8E8),
+                                              borderRadius: BorderRadius.circular(19),
+                                              border: Border.all(
+                                                color: isDark ? const Color(0xFFEF5350) : const Color(0xFFE53935),
+                                                width: 1.2,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: BoxDecoration(
+                                                    color: isDark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F),
+                                                    borderRadius: BorderRadius.circular(2),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  'Stop',
+                                                  style: TextStyle(
+                                                    color: isDark ? const Color(0xFFFF8A80) : const Color(0xFFD32F2F),
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          borderRadius: BorderRadius.circular(19),
                                         ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            widget.isBusy
-                                                ? const SizedBox(
-                                                    width: 14,
-                                                    height: 14,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                                    ),
-                                                  )
-                                                : const Icon(
+                                      ),
+                                    ),
+                                  )
+                                : Tooltip(
+                                    message: 'Send message',
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(milliseconds: 150),
+                                      opacity: _hasContent ? 1.0 : 0.72,
+                                      child: InkWell(
+                                        onTap: _handleSend,
+                                        borderRadius: BorderRadius.circular(19),
+                                        child: SizedBox(
+                                          height: 44,
+                                          child: Center(
+                                            child: Container(
+                                              height: 38,
+                                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: isDark
+                                                      ? const [
+                                                          Color(0xFF2D4D36),
+                                                          Color(0xFF1B3824),
+                                                        ]
+                                                      : const [
+                                                          Color(0xFF172C1E),
+                                                          Color(0xFF2A5338),
+                                                        ],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                ),
+                                                borderRadius: BorderRadius.circular(19),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
                                                     Icons.arrow_upward_rounded,
                                                     size: 16,
                                                     color: Colors.white,
                                                   ),
-                                            const SizedBox(width: 6),
-                                            const Text(
-                                              'Send',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13.5,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: -0.1,
+                                                  SizedBox(width: 6),
+                                                  Text(
+                                                    'Send',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 13.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      letterSpacing: -0.1,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ],

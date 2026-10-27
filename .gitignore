@@ -68,3 +68,31 @@ linux/flutter/ephemeral/
 
 # Widget Preview related
 .widget_preview/
+
+# ==========================================
+# PocketLLM Specific Ignores
+# ==========================================
+
+# AI Models & Large Binaries (Strictly exceeds GitHub 100MB limit)
+*.gguf
+*.bin
+*.pt
+*.safetensors
+*.onnx
+assets/models/
+assets/models/*
+
+# Local Backend Uploads & Vector Databases (Private & Local storage)
+backend/uploads/
+backend/uploads/*
+backend/chroma_db/
+backend/chroma_db/*
+backend/test_chroma_db/
+backend/test_chroma_db/*
+backend/__pycache__/
+*.sqlite3
+
+# Temporary & Local State Files
+*.tmp
+*.bak
+*.cache

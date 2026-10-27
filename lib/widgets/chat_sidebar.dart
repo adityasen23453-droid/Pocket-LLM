@@ -57,26 +57,28 @@ class ChatSidebar extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // 3D PocketLLM Emerald & Platinum "P" Logo Icon
-                  Image.asset(
-                    'assets/images/pocketllm_logo.png',
-                    width: 30,
-                    height: 30,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Container(
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/images/aju_pocketllm_logo.png',
                       width: 30,
                       height: 30,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: emeraldAccent.withValues(alpha: 0.2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'P',
-                          style: TextStyle(
-                            color: emeraldAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: emeraldAccent.withValues(alpha: 0.2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'P',
+                            style: TextStyle(
+                              color: emeraldAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ),

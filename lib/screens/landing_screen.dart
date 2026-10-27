@@ -281,23 +281,18 @@ class LandingScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6.5),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark
-                      ? const Color(0xFF3F6649).withValues(alpha: 0.28)
-                      : const Color(0xFF172C1E).withValues(alpha: 0.1),
-                ),
-                child: Icon(
-                  Icons.auto_awesome,
-                  size: 14,
-                  color: emeraldAccent,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(7),
+                child: Image.asset(
+                  'assets/images/aju_pocketllm_logo.png',
+                  width: 26,
+                  height: 26,
+                  fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(width: 9),
               Text(
-                'PocketLLM',
+                'PocketLLM · AJU',
                 style: TextStyle(
                   color: textPrimary,
                   fontSize: 19,

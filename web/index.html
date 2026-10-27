@@ -29,7 +29,12 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>pocketllm</title>
+  <!-- Cache control to ensure fresh code on mobile browsers -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>PocketLLM</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -41,6 +46,7 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter_bootstrap.js?v=2.1" async></script>
 </body>
+
 </html>
