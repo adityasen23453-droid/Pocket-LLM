@@ -124,13 +124,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   bool get _isEmptyChat => _activeSession.messages.isEmpty;
 
   void _selectSession(String id) {
+    if (_activeSessionId == id) return;
+    _handleStopGenerating();
+    _offlineAiService.clearContext();
     setState(() {
       _activeSessionId = id;
+      _stagedFileName = null;
+      _stagedFileChunks = null;
     });
     _scrollToBottom();
   }
 
   void _startNewChat() {
+    _handleStopGenerating();
+    _offlineAiService.clearContext();
     final newId = 'session_${DateTime.now().millisecondsSinceEpoch}';
     final newSession = ChatSession(
       id: newId,
@@ -149,6 +156,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _clearCurrentChat() {
+    _handleStopGenerating();
+    _offlineAiService.clearContext();
     setState(() {
       _activeSession.messages.clear();
       _activeSession.title = 'New Chat';
@@ -175,10 +184,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _chatHistoryService.saveSessions(_sessions);
   }
 
-  void _handleStopGenerating() {
+  Future<void> _handleStopGenerating() async {
     _chatStreamSubscription?.cancel();
     _chatStreamSubscription = null;
-    _offlineAiService.ensureIdle();
+    await _offlineAiService.ensureIdle();
+    await _offlineAiService.clearContext();
     if (mounted) {
       setState(() {
         _isGenerating = false;
@@ -295,6 +305,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         if (activeDocs.isNotEmpty) {
           final retrieved = _offlineRagService.retrieve(
             query: text,
+            targetDocument: docForQuery,
             activeDocuments: activeDocs,
             topK: 4,
           );
@@ -686,7 +697,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     onModelReady: () {
                       if (mounted) {
                         setState(() {
-                          _isOfflineModelReady = true;
+                          _isOfflineModelReady = _offlineAiService.isModelLoaded;
                         });
                       }
                     },
@@ -720,7 +731,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       const SizedBox(width: 5),
                       Text(
                         _isOfflineModelReady
-                            ? 'OFFLINE AI (1.5B)'
+                            ? 'OFFLINE AI (${_offlineAiService.activeTierName})'
                             : (_isBackendOnline
                                 ? '${_backendDevice.toUpperCase()} ONLINE'
                                 : 'TAP FOR OFFLINE AI'),

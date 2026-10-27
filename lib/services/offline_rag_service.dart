@@ -107,7 +107,7 @@ class OfflineRagService {
     }
   }
 
-  /// Parses bytes from PDF, TXT, or MD directly on the phone processor
+  /// Parses bytes from PDF, TXT, or MD directly on the phone processor with safety page limits
   Future<ParseResult> indexDocument({
     required Uint8List bytes,
     required String filename,
@@ -121,7 +121,8 @@ class OfflineRagService {
       if (ext == 'pdf') {
         final PdfDocument document = PdfDocument(inputBytes: bytes);
         final PdfTextExtractor extractor = PdfTextExtractor(document);
-        final pageCount = document.pages.count;
+        // Cap extraction to first 40 pages to guarantee 0 ANR freezes on mobile CPUs
+        final pageCount = math.min(document.pages.count, 40);
 
         int totalExtractedChars = 0;
         for (int i = 0; i < pageCount; i++) {
@@ -194,7 +195,7 @@ class OfflineRagService {
     }
   }
 
-  /// Splits page text into semantic 800-character chunks with 120-character overlap
+  /// Splits page text into semantic 750-character chunks with 120-character overlap
   List<DocumentChunk> _chunkPages(
     List<Map<String, dynamic>> pagesContent,
     String filename, {
@@ -273,9 +274,10 @@ class OfflineRagService {
     return casual.contains(clean);
   }
 
-  /// High-speed on-device BM25 ranking across specified or all active documents
+  /// High-speed on-device BM25 ranking strictly scoped to target or active documents
   List<DocumentChunk> retrieve({
     required String query,
+    String? targetDocument,
     List<String>? activeDocuments,
     int topK = 4,
   }) {
@@ -284,26 +286,69 @@ class OfflineRagService {
     // Conversational greetings should NEVER receive document context
     if (isConversational(query)) return [];
 
-    // Filter to target documents if specified
-    var candidateChunks = _chunks;
-    if (activeDocuments != null && activeDocuments.isNotEmpty) {
+    // 1. Determine candidate chunks:
+    // If targetDocument is provided (e.g. attached to this specific message), STRICTLY scope to it
+    List<DocumentChunk> candidateChunks = [];
+    if (targetDocument != null && targetDocument.isNotEmpty) {
+      candidateChunks = _chunks
+          .where((c) => c.source.toLowerCase() == targetDocument.toLowerCase())
+          .toList();
+    }
+
+    // If no targetDocument or not found, scope to activeDocuments
+    if (candidateChunks.isEmpty && activeDocuments != null && activeDocuments.isNotEmpty) {
       final lowerDocs = activeDocuments.map((d) => d.toLowerCase()).toSet();
       candidateChunks = _chunks.where((c) => lowerDocs.contains(c.source.toLowerCase())).toList();
-      if (candidateChunks.isEmpty) {
-        // Fallback to all chunks if session document was renamed
-        candidateChunks = _chunks;
-      }
+    }
+
+    // Fallback to all chunks only if neither filter matched
+    if (candidateChunks.isEmpty) {
+      candidateChunks = _chunks;
     }
 
     if (candidateChunks.isEmpty) return [];
 
-    // Tokenize query with ordinal normalization
+    final lowerQuery = query.toLowerCase().trim();
+
+    // Check if query is an overview/summary request (e.g. "what does this pdf say", "summarize this", "tell me what this contains")
+    final isOverviewQuery = lowerQuery.contains('summary') ||
+        lowerQuery.contains('summarize') ||
+        lowerQuery.contains('contain') ||
+        lowerQuery.contains('overview') ||
+        lowerQuery.contains('about this') ||
+        lowerQuery.contains('what does this') ||
+        lowerQuery.contains('what is this') ||
+        lowerQuery.contains('is saying') ||
+        lowerQuery.contains('analyze this') ||
+        lowerQuery.contains('study notes');
+
+    // 2. Tokenize query with ordinal normalization
     final queryTokens = _tokenize(query);
     if (queryTokens.isEmpty) {
+      if (isOverviewQuery) {
+        return candidateChunks.take(math.min(3, topK)).toList();
+      }
       return [];
     }
 
-    // Precompute document lengths and frequencies for BM25
+    // Check if query asks for a range of questions, e.g. "first 3 questions" or "first 4 questions"
+    final rangeMatch = RegExp(r'\bfirst\s*(\d+)\s*(?:questions?)?\b').firstMatch(lowerQuery);
+    final targetQuestionSet = <String>{};
+    if (rangeMatch != null) {
+      final count = int.tryParse(rangeMatch.group(1) ?? '3') ?? 3;
+      for (int i = 1; i <= count; i++) {
+        targetQuestionSet.add('$i');
+      }
+    } else {
+      // Check single question target (e.g. "4th question", "question 4", "q2")
+      final qNumMatch = RegExp(r'\b(?:question\s*|q\s*|#\s*)?(\d+)(?:st|nd|rd|th)?\b', caseSensitive: false).firstMatch(lowerQuery);
+      if (qNumMatch != null) {
+        final num = qNumMatch.group(1);
+        if (num != null) targetQuestionSet.add(num);
+      }
+    }
+
+    // Precompute BM25 statistics
     final docTokensList = candidateChunks.map((c) => _tokenize(c.text)).toList();
     final int N = candidateChunks.length;
     double totalDocLength = 0;
@@ -312,7 +357,6 @@ class OfflineRagService {
     }
     final double avgdl = totalDocLength / (N > 0 ? N : 1);
 
-    // Document frequencies (DF) for each query token
     final Map<String, int> df = {};
     for (final qToken in queryTokens) {
       int count = 0;
@@ -324,11 +368,6 @@ class OfflineRagService {
 
     const double k1 = 1.2;
     const double b = 0.75;
-    final lowerQuery = query.toLowerCase().trim();
-
-    // Check if query targets a specific question number (e.g. "4th question", "question 4", "Q4")
-    final qNumMatch = RegExp(r'\b(?:question\s*|q\s*|#\s*)?(\d+)(?:st|nd|rd|th)?\b', caseSensitive: false).firstMatch(lowerQuery);
-    final targetQuestionNum = qNumMatch?.group(1);
 
     // Score each candidate chunk
     final scores = <double>[];
@@ -337,7 +376,6 @@ class OfflineRagService {
       final docLength = docTokens.length;
       double score = 0.0;
 
-      // Count token frequencies in this document
       final Map<String, int> tf = {};
       for (final token in docTokens) {
         tf[token] = (tf[token] ?? 0) + 1;
@@ -348,7 +386,6 @@ class OfflineRagService {
         if (termFreq == 0) continue;
 
         final int docFreq = df[qToken] ?? 0;
-        // Standard BM25 IDF
         final double idf = math.log(1.0 + (N - docFreq + 0.5) / (docFreq + 0.5));
         final double numerator = termFreq * (k1 + 1);
         final double denominator = termFreq + k1 * (1 - b + b * (docLength / (avgdl > 0 ? avgdl : 1)));
@@ -357,35 +394,37 @@ class OfflineRagService {
 
       final cText = candidateChunks[i].text.toLowerCase();
 
-      // Bonus boost if the exact multi-word query phrase appears in the text
-      if (lowerQuery.length > 3 && cText.contains(lowerQuery)) {
-        score += 3.5;
+      // Bonus boost for exact phrase match
+      if (lowerQuery.length > 4 && cText.contains(lowerQuery)) {
+        score += 4.0;
       }
 
-      // Question number boost: if user asks for question N, boost chunks containing "N." or "Question N"
-      if (targetQuestionNum != null) {
-        if (cText.contains('$targetQuestionNum.') ||
-            cText.contains('question $targetQuestionNum') ||
-            cText.contains('q$targetQuestionNum') ||
-            cText.contains('q.$targetQuestionNum')) {
-          score += 5.0;
+      // Question number boost
+      if (targetQuestionSet.isNotEmpty) {
+        for (final qNum in targetQuestionSet) {
+          if (cText.contains('$qNum.') ||
+              cText.contains('question $qNum') ||
+              cText.contains('q$qNum') ||
+              cText.contains('q.$qNum')) {
+            score += 5.0;
+          }
         }
       }
 
       scores.add(score);
     }
 
-    // Pair chunks with their scores
+    // Pair chunks with scores and sort descending
     final indexedPairs = List.generate(N, (i) => MapEntry(candidateChunks[i], scores[i]));
     indexedPairs.sort((a, b) => b.value.compareTo(a.value));
 
-    // Return top-scoring chunks with positive match score
     final results = indexedPairs.where((p) => p.value > 0.05).map((p) => p.key).take(topK).toList();
 
-    // If query has no keyword matches, fallback to first 2 sequential chunks only if query asks about summary/overview
+    // Fallback if query has no keyword matches
     if (results.isEmpty) {
-      if (lowerQuery.contains('summary') || lowerQuery.contains('contain') || lowerQuery.contains('overview') || lowerQuery.contains('notes')) {
-        return candidateChunks.take(math.min(2, topK)).toList();
+      if (isOverviewQuery || targetDocument != null) {
+        // Return first 3 sequential chunks of the document
+        return candidateChunks.take(math.min(3, topK)).toList();
       }
       return [];
     }
@@ -438,4 +477,3 @@ class OfflineRagService {
     }
   }
 }
-
