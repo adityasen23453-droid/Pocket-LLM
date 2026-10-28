@@ -129,30 +129,54 @@ class OfflineAiService {
     return modelDir;
   }
 
-  /// Checks if a specific model tier is downloaded and valid on device storage
+  /// Checks if a specific model tier is downloaded and verified on device storage
   Future<bool> isModelDownloaded(ModelTierId tierId) async {
     final tier = tiers.firstWhere((t) => t.id == tierId);
     final path = await getModelPathForTier(tier);
     return path != null;
   }
 
-  /// Resolves the absolute path for a specific model tier
+  /// Resolves the absolute path for a specific model tier with rigorous size verification.
+  /// Automatically removes partial/aborted downloads that would otherwise fail with "corrupted".
   Future<String?> getModelPathForTier(ModelTierInfo tier) async {
     if (kIsWeb || !Platform.isAndroid) return null;
 
     try {
       final modelDir = await _getModelDir();
       final appFile = File('${modelDir.path}/${tier.fileName}');
-      if (await appFile.exists() && await appFile.length() > 50000000) {
-        return appFile.path;
+      // A complete GGUF model must be at least 85% of its official size
+      final minExpectedSize = (tier.fileSizeBytes * 0.85).toInt();
+
+      if (await appFile.exists()) {
+        final len = await appFile.length();
+        if (len >= minExpectedSize) {
+          return appFile.path;
+        } else {
+          // File is incomplete or aborted from a previous network drop; delete to allow clean re-download
+          debugPrint('[OfflineAiService] Detected incomplete file ($len bytes < $minExpectedSize): ${appFile.path}. Cleaning up...');
+          try {
+            await appFile.delete();
+          } catch (_) {}
+        }
       }
 
       // Check public /storage/emulated/0/Download
       final downloadDir = Directory('/storage/emulated/0/Download');
       if (await downloadDir.exists()) {
         final dFile = File('${downloadDir.path}/${tier.fileName}');
-        if (await dFile.exists() && await dFile.length() > 50000000) {
-          return dFile.path;
+        if (await dFile.exists() && await dFile.length() >= minExpectedSize) {
+          // On Android 11+, copy to app storage so native C++ POSIX fopen never hits Scoped Storage permission blocks
+          if (!await appFile.exists()) {
+            try {
+              debugPrint('[OfflineAiService] Importing model from Download folder to app private storage...');
+              await dFile.copy(appFile.path);
+              return appFile.path;
+            } catch (copyErr) {
+              debugPrint('[OfflineAiService] Copy from Download failed ($copyErr), using direct path');
+              return dFile.path;
+            }
+          }
+          return appFile.path;
         }
       }
     } catch (e) {
@@ -224,7 +248,10 @@ class OfflineAiService {
     }
   }
 
-  /// Initializes and loads the GGUF model into phone RAM with 4096 context and CPU fallback
+  /// Initializes and loads the GGUF model into phone RAM with robust progressive fallbacks:
+  /// Attempt 1: Vulkan GPU (if supported) + 4096 context
+  /// Attempt 2: ARM NEON CPU + 4096 context
+  /// Attempt 3: ARM NEON CPU + 2048 context (safe fallback for tight memory)
   Future<bool> initModel({String? customPath, bool forceCpu = false}) async {
     if (_isLoading) return false;
 
@@ -237,7 +264,15 @@ class OfflineAiService {
     try {
       final path = customPath ?? await getModelPath();
       if (path == null) {
-        debugPrint('[OfflineAiService] No GGUF model found on device storage.');
+        debugPrint('[OfflineAiService] No valid GGUF model found on device storage.');
+        _isLoading = false;
+        return false;
+      }
+
+      // Verify file physically exists and is readable
+      final fileObj = File(path);
+      if (!await fileObj.exists() || await fileObj.length() < 50000000) {
+        debugPrint('[OfflineAiService] Model file missing or corrupted at: $path');
         _isLoading = false;
         return false;
       }
@@ -272,30 +307,63 @@ class OfflineAiService {
         }
       }
 
-      debugPrint('[OfflineAiService] Loading model from: $path (GPU layers: $gpuLayers)');
+      debugPrint('[OfflineAiService] Attempt 1: Loading model (GPU layers: $gpuLayers, Context: 4096)');
+      bool isLoadedSuccess = false;
+
       try {
         await _controller!.loadModel(
           modelPath: path,
           threads: 4,
-          contextSize: 4096, // 4096 token context window
+          contextSize: 4096,
           gpuLayers: gpuLayers,
         );
-      } catch (loadErr) {
-        // Fallback to pure ARM NEON CPU if GPU compilation fails
-        debugPrint('[OfflineAiService] GPU load failed ($loadErr). Falling back to ARM NEON CPU...');
+        isLoadedSuccess = true;
+      } catch (e1) {
+        debugPrint('[OfflineAiService] Attempt 1 failed ($e1). Trying Attempt 2: CPU-only with 4096 context...');
+        try {
+          await _controller!.dispose();
+        } catch (_) {}
         _controller = llama.LlamaController();
-        await _controller!.loadModel(
-          modelPath: path,
-          threads: 4,
-          contextSize: 4096,
-          gpuLayers: 0,
-        );
+
+        try {
+          await _controller!.loadModel(
+            modelPath: path,
+            threads: 4,
+            contextSize: 4096,
+            gpuLayers: 0,
+          );
+          isLoadedSuccess = true;
+        } catch (e2) {
+          debugPrint('[OfflineAiService] Attempt 2 failed ($e2). Trying Attempt 3: CPU with 2048 context...');
+          try {
+            await _controller!.dispose();
+          } catch (_) {}
+          _controller = llama.LlamaController();
+
+          try {
+            await _controller!.loadModel(
+              modelPath: path,
+              threads: 4,
+              contextSize: 2048,
+              gpuLayers: 0,
+            );
+            isLoadedSuccess = true;
+          } catch (e3) {
+            debugPrint('[OfflineAiService] All load attempts failed: $e3');
+            isLoadedSuccess = false;
+          }
+        }
       }
 
-      _isModelLoaded = true;
-      _loadedModelPath = path;
-      debugPrint('[OfflineAiService] Model loaded successfully: $path (Tier: $activeTierName)');
-      return true;
+      if (isLoadedSuccess) {
+        _isModelLoaded = true;
+        _loadedModelPath = path;
+        debugPrint('[OfflineAiService] Model loaded successfully: $path (Tier: $activeTierName)');
+        return true;
+      } else {
+        _isModelLoaded = false;
+        return false;
+      }
     } catch (e) {
       debugPrint('[OfflineAiService] Failed to load model: $e');
       _isModelLoaded = false;
@@ -318,6 +386,25 @@ class OfflineAiService {
     await dispose();
     _activeTierId = tierId;
     return await initModel(customPath: path);
+  }
+
+  /// Deletes a model file from storage (used to clean corrupted downloads)
+  Future<bool> deleteModel(ModelTierId tierId) async {
+    try {
+      final tier = tiers.firstWhere((t) => t.id == tierId);
+      final modelDir = await _getModelDir();
+      final appFile = File('${modelDir.path}/${tier.fileName}');
+      if (await appFile.exists()) {
+        await appFile.delete();
+      }
+      if (_activeTierId == tierId) {
+        await dispose();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[OfflineAiService] Error deleting model: $e');
+      return false;
+    }
   }
 
   /// Streams tokens in real-time from the on-device model with KV cache reset & anti-repetition
@@ -438,6 +525,14 @@ class OfflineAiService {
       await sink.flush();
       await sink.close();
       client.close();
+
+      // Rigorous integrity verification: Ensure download was not aborted prematurely
+      if (receivedBytes < (totalBytes * 0.90)) {
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
+        throw Exception('Download interrupted: received $receivedBytes of $totalBytes bytes');
+      }
 
       if (await targetFile.exists()) {
         await targetFile.delete();

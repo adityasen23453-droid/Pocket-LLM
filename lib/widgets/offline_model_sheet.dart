@@ -477,6 +477,19 @@ class _OfflineModelSheetState extends State<OfflineModelSheet> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _isSwitching || _downloadingTierId != null
+                        ? null
+                        : () => _handleDeleteAndRedownload(tier.id),
+                    icon: const Icon(Icons.refresh_rounded, size: 20),
+                    tooltip: 'Re-download Model',
+                    style: IconButton.styleFrom(
+                      foregroundColor: textSecondary,
+                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                 ] else ...[
                   Expanded(
                     child: ElevatedButton.icon(
@@ -585,12 +598,13 @@ class _OfflineModelSheetState extends State<OfflineModelSheet> {
     });
 
     final success = await _offlineService.switchModel(tierId);
+    await _checkInstalledModels();
 
     if (mounted) {
       setState(() {
         _isSwitching = false;
         if (!success) {
-          _errorMessage = 'Failed to load model. File may be corrupted.';
+          _errorMessage = 'Failed to load model. The file may be incomplete or corrupted. Tap the refresh button to re-download.';
         }
       });
 
@@ -604,6 +618,14 @@ class _OfflineModelSheetState extends State<OfflineModelSheet> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleDeleteAndRedownload(ModelTierId tierId) async {
+    await _offlineService.deleteModel(tierId);
+    await _checkInstalledModels();
+    if (mounted) {
+      _handleDownloadModel(tierId);
     }
   }
 
